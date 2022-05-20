@@ -1,14 +1,14 @@
-# dns-spoofer
+# DNS Spoofer
 
-# Prerequisites
+## Prerequisites
 
-## Enable ip forwarding
+### 1. Enable ip forwarding
 
 ```sh
 echo "1" > /proc/sys/net/ipv4/ip_forward
 ```
 
-## Add routing via iptables
+### 2. Add routing via iptables
 
 ```sh
 sudo iptables -t mangle -I PREROUTING -p udp --dport 53 -j DROP
