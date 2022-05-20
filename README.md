@@ -10,7 +10,7 @@ echo "1" > /proc/sys/net/ipv4/ip_forward
 
 ### 2. Add routing via iptables
 
-This will make it so that all the incoming packages are passed to the router except for DNS requests.
+This will make it so that all the incoming packets are passed to the router except for DNS requests.
 
 ```sh
 sudo iptables -t mangle -I PREROUTING -p udp --dport 53 -j DROP
