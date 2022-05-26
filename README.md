@@ -14,6 +14,7 @@ These commands will make that all packets are passed to the router except for DN
 
 ```sh
 sudo iptables -t filter -A FORWARD -p udp --dport 53 -j DROP
+sudo iptables -t nat -A POSTROUTING -o wlo1 -p udp --sport 53 -j ACCEPT
 sudo iptables -t nat -A POSTROUTING -o wlo1 -j MASQUERADE
 ```
 
