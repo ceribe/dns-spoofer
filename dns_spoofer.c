@@ -24,9 +24,49 @@ u_int8_t source_mac_addr[6]; // MAC address of "interface_name"
 
 u_int8_t victim_hw_addr[6] = {0x2c, 0xf0, 0x5d, 0xae, 0xe4, 0x01};
 
+struct saved_ip
+{
+  char *domain;
+  u_long ip_addr;
+  struct saved_ip *next;
+};
+
+struct saved_ip *head = NULL;
+
+/**
+ * Returns ip addres for given domain if found in the saved_ip list else returns 0
+ */
+u_long get_ip_addr(char *domain)
+{
+  struct saved_ip *curr = head;
+  while (curr != NULL)
+  {
+    if (strcmp(curr->domain, domain) == 0)
+    {
+      return curr->ip_addr;
+    }
+    curr = curr->next;
+  }
+  return 0;
+}
+
+/**
+ * Adds given domain and ip address to the saved_ip list
+ */
+void add_ip_addr(char *domain, u_long ip_addr)
+{
+  struct saved_ip *new_saved_ip = (struct saved_ip *)malloc(sizeof(struct saved_ip));
+  new_saved_ip->domain = (char *)malloc(strlen(domain) + 1);
+  strcpy(new_saved_ip->domain, domain);
+  new_saved_ip->ip_addr = ip_addr;
+  new_saved_ip->next = head;
+  head = new_saved_ip;
+}
+
 /**
  * Checks whether user provided all arguments and run the program as root.
  * If not appropriate error message is displayed and program is terminated.
+ *
  * @param argc number of arguments
  * @param argv array of arguments
  */
@@ -164,7 +204,12 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
   uint16_t dns_id = dns_header[0] << 8 | dns_header[1];
   if (!domain_name_matches_website)
   {
-    requested_ip_addr = libnet_name2addr4(handler, domain_name, LIBNET_RESOLVE);
+    requested_ip_addr = get_ip_addr(domain_name);
+    if (requested_ip_addr == 0)
+    {
+      requested_ip_addr = libnet_name2addr4(handler, domain_name, LIBNET_RESOLVE);
+      add_ip_addr(domain_name, requested_ip_addr);
+    }
   }
 
   char dns_response[1024];
