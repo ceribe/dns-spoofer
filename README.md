@@ -40,4 +40,4 @@ If your interface is wlo1 and your gateway is 192.168.0.1 then you can run the f
 sudo ./dns_spoofer wlo1 192.168.0.1 github.com guthib.com
 ```
 
-This will make it so that all DNS requests to github.com will be redirected to guthib.com.
+This will make it so that all DNS requests for github.com will be changed to guthib.com.
