@@ -169,6 +169,7 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
 
   char dns_response[1024];
 
+  // Create response
   memcpy(dns_response, dns_query, dns_query_len + 5);
   // Set type, class and TTL
   memcpy(dns_response + dns_query_len + 5, "\xc0\x0c\x00\x01\x00\x01\x00\x00\x00\x04\x00\x04", 12);
