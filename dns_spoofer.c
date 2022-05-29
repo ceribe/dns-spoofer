@@ -172,7 +172,7 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
   // Create response
   memcpy(dns_response, dns_query, dns_query_len + 5);
   // Set type, class and TTL
-  memcpy(dns_response + dns_query_len + 5, "\xc0\x0c\x00\x01\x00\x01\x00\x00\x00\x04\x00\x04", 12);
+  memcpy(dns_response + dns_query_len + 5, "\xc0\x0c\x00\x01\x00\x01\x00\x00\x00\xff\x00\x04", 12);
   *((u_long *)(dns_response + dns_query_len + 5 + 12)) = requested_ip_addr;
   int dns_response_size = dns_query_len + 5 + 12 + 4;
   int packet_size = dns_response_size + LIBNET_IPV4_H + LIBNET_UDP_H + LIBNET_DNS_H;
