@@ -346,7 +346,7 @@ int main(int argc, char **argv)
   redirect_addr = argv[4];
   char *victim_hw_addr_str = argv[5];
 
-  // Convert victim_hw_addr_str to victim_hw_addr
+  // Convert victim_hw_addr_str from string to binary representation
   for (int i = 0; i < 6; i++)
   {
     victim_hw_addr[i] = (unsigned char)strtol(victim_hw_addr_str + i * 3, NULL, 16);
