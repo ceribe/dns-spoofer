@@ -1,5 +1,8 @@
 # DNS Spoofer
 
+DNS Spoofer is a tool which exploits how ARP protocol works by pretending to be the gateway. Then when victim saves attacker's IP address as gateway
+all packets will be tunneled through attacker's computer. This allows to pick DNS packets, drop them and inject fake DNS responses.
+
 ## How to run
 
 ### 1. Enable ip forwarding
@@ -36,7 +39,7 @@ To get victim's mac address, run "arp-scan --localnet".
 
 #### Example:
 
-If your interface is wlo1, your gateway is 192.168.0.1 and victim's MAC is a8:44:12:13:g2:1b then you can run the following command:
+If your interface is wlo1, gateway is 192.168.0.1 and victim's MAC is a8:44:12:13:g2:1b then you can run the following command:
 
 ```sh
 sudo ./dns_spoofer wlo1 192.168.0.1 github.com guthib.com a8:44:12:13:g2:1b
