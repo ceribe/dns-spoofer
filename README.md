@@ -31,6 +31,7 @@ sudo ./dns_spoofer INTERFACE_NAME GATEWAY_IP_ADDR WEBSITE_ADDR REDIRECT_IP_ADDR 
 ```
 
 If you are not sure which interface to use, run "ip a" and look for the one that has "state UP".
+
 To get victim's mac address, run "arp-scan --localnet".
 
 #### Example:
