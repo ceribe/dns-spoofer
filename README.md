@@ -1,6 +1,6 @@
 # DNS Spoofer
 
-DNS Spoofer is a tool which exploits how ARP protocol works by pretending to be the gateway. Then when victim saves attacker's IP address as gateway
+DNS Spoofer is a tool which exploits how ARP protocol works by pretending to be the gateway. Then when victim saves attacker's MAC as gateway
 all packets will be tunneled through attacker's computer. This allows to pick DNS packets, drop them and inject fake DNS responses.
 
 ## How to run
