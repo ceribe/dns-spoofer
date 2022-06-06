@@ -1,4 +1,11 @@
+CC?=gcc
+CFLAGS=-Wall -O3
+LIBS=-lnet -lpcap -lresolv
+IN_FILE=dns_spoofer.c
+OUT_FILE=dns_spoofer
+
 build:
-	gcc -Wall ./dns_spoofer.c -o ./dns_spoofer -lnet -lpcap -lresolv
+	$(CC) $(CFLAGS) $(IN_FILE) -o $(OUT_FILE) $(LIBS)
+	
 clean:
-	rm -f ./dns_spoofer
+	rm -f $(OUT_FILE)
