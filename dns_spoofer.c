@@ -176,6 +176,7 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
     if (eth_header->h_source[i] != source_mac_addr[i])
     {
       was_sent_by_this_program = 0;
+      break;
     }
   }
   if (was_sent_by_this_program)
