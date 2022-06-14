@@ -223,7 +223,7 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
   handler = libnet_init(LIBNET_RAW4, interface_name, errbuf);
   libnet_ptag_t dns_ptag = 0, udp_ptag = 0, ip_ptag = 0, eth_ptag = 0;
 
-  // Build all the layers from bottom to top
+  // Build all the layers
 
   libnet_build_dnsv4(
       LIBNET_UDP_DNSV4_H,
@@ -237,7 +237,6 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
       dns_response_size,
       handler,
       dns_ptag);
-
   if (dns_ptag == -1)
   {
     printf("Building DNS header failed: %s\n", libnet_geterror(handler));
@@ -253,7 +252,6 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
       0,
       handler,
       udp_ptag);
-
   if (udp_ptag == -1)
   {
     printf("Building UDP header failed: %s\n", libnet_geterror(handler));
@@ -274,7 +272,6 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
       0,
       handler,
       ip_ptag);
-
   if (ip_ptag == -1)
   {
     printf("Building IP header failed: %s\n", libnet_geterror(handler));
@@ -289,7 +286,6 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
       0,
       handler,
       eth_ptag);
-
   if (eth_ptag == -1)
   {
     printf("Building Ethernet header failed: %s\n", libnet_geterror(handler));
