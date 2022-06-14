@@ -191,10 +191,10 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
   {
     return;
   }
-  // "dn_expand" changes given pointer so we need to restore it
+  // "dn_expand" changes given pointer so it needs to be restored
   dns_query = dns_query_backup;
 
-  // If dns request is for wanted site then replace it with our site.
+  // If dns request is for wanted site then use fake ip addres
   domain_name[dns_query_len - 1] = '\0';
   libnet_t *handler = NULL;
   u_long requested_ip_addr = redirect_ip_addr;
