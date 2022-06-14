@@ -17,7 +17,7 @@
 
 char *interface_name;        // Name of the interface on which sniffing will be done and through which fake packes will be sent eg. "wlo1"
 char *gateway_ip_addr;       // IP address of the gateway eg. "192.168.0.1"
-char *website_to_spoof;      // Website which will be spoffed eg. "www.github.com"
+char *website_to_spoof;      // Website which will be spoofed eg. "www.github.com"
 char *redirect_addr;         // Website url or ip address which will be send instead of the website's eg. "192.168.0.47" or "www.guthib.com"
 u_long redirect_ip_addr;     // IP address of the redirect_addr
 u_int8_t source_mac_addr[6]; // MAC address of "interface_name"
