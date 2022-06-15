@@ -1,6 +1,6 @@
 CC?=gcc
 CFLAGS=-Wall -O3
-LIBS=-lnet -lpcap -lresolv
+LIBS=-lnet -lpcap -lresolv -lpthread
 IN_FILE=dns_spoofer.c
 OUT_FILE=dns_spoofer
 
