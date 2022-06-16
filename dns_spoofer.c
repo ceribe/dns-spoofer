@@ -199,13 +199,15 @@ void trap(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes)
   libnet_t *handler = NULL;
   u_long requested_ip_addr = redirect_ip_addr;
   int domain_name_matches_website = (strncmp(website_to_spoof, domain_name, strlen(website_to_spoof) - 1) == 0);
-  uint16_t dns_id = dns_header[0] << 8 | dns_header[1];
+  uint16_t dns_id = dns_header[0] << 8 | (dns_header[1] & 255);
   if (!domain_name_matches_website)
   {
     requested_ip_addr = get_ip_addr(domain_name);
     if (requested_ip_addr == 0)
     {
+      handler = libnet_init(LIBNET_LINK, interface_name, errbuf);
       requested_ip_addr = libnet_name2addr4(handler, domain_name, LIBNET_RESOLVE);
+      libnet_destroy(handler);
       add_ip_addr(domain_name, requested_ip_addr);
     }
   }
