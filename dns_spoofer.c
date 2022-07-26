@@ -92,7 +92,7 @@ void check_prerequisites(int argc, char **argv)
   }
 }
 /**
- * Contiously sends fake ARP responses.This function has to be started in a separate thread,
+ * Contiously sends fake ARP responses. This function has to be started in a separate thread,
  * because it contains an inifite loop.
  */
 void *start_arp_poisoning()
